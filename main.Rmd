@@ -10,14 +10,36 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r source}
+library(rstanarm)
+library(coda)
+library(mvtnorm)
+library(ggplot2)
 source("willy.R")
 ```
 
+## Importation
+
 ```{r}
+TARGET_FEATURE = "percenttp"
+
 RawData = ImportData("Q14_survey_for_dataverse.csv")
 ```
 
-```{r}
 
+```{r}
+Data <- CleanData(RawData)
 ```
+
+```{r}
+model <- BayesianLinearRegression(Data, TARGET_FEATURE, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10))
+```
+
+```{r}
+mse <- BayesianMSE(model, Data, TARGET_FEATURE)
+```
+
+```{r}
+PlotMCMC(model, Data, FALSE)
+```
+
 
