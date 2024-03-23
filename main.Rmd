@@ -29,7 +29,9 @@ RawData = ImportData("Q14_survey_for_dataverse.csv")
 
 ```{r}
 Data <- remove_columns(RawData, c("firstthought", "recent", "tpfeel", "biggest", "paystub", "depend", "glad", "upset", "benefit", "wastethink","eitcexp", "eitcthink"))
-Data <- CleanData(RawData)
+Data <- CleanData(Data)
+
+Data <- to_factor(Data, c("statename"))
 ```
 
 ```{r}

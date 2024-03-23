@@ -38,7 +38,7 @@ RemoveStringFeature <- function(data){
 }
 
 CleanData <- function(data){
-  data <- RemoveStringFeature(data)
+  # data <- RemoveStringFeature(data)
   data <- RemoveNA(data)
   GetDatasetInformation(data)
   return(data)
