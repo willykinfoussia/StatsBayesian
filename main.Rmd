@@ -7,13 +7,13 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r source}
+library(dplyr)
+library(rstan)
 library(rstanarm)
 library(coda)
 library(mvtnorm)
 library(ggplot2)
+library(bayesplot)
 source("willy.R")
 ```
 
@@ -36,10 +36,24 @@ model <- BayesianLinearRegression(Data, TARGET_FEATURE, prior = normal(location 
 
 ```{r}
 mse <- BayesianMSE(model, Data, TARGET_FEATURE)
+SummaryMCMC(model)
 ```
 
 ```{r}
-PlotMCMC(model, Data, FALSE)
+PlotMCMC(model, Data, TRUE)
+```
+
+```{r}
+MCMCTrace(model)
+
+MCMCRhat(model)
 ```
 
 
+```{r}
+TestMCMCRstanarm()
+```
+
+```{r}
+TestMCMCRstan()
+```

@@ -64,7 +64,16 @@ BayesianMSE <- function(model, data, targetFeature) {
   return(mse)
 }
 
+MCMCTrace <- function(model){
+  model %>% mcmc_trace()
+}
 
+MCMCRhat <- function(model){
+  model %>%
+    rhat() %>%
+    mcmc_rhat() +
+    yaxis_text()
+}
 
 # Define the plotting function
 PlotMCMC <- function(model, data, print_trace = FALSE) {
@@ -96,21 +105,68 @@ PlotMCMC <- function(model, data, print_trace = FALSE) {
   print(density_plots)
 }
 
-SummaryMCMCMetropolisHastings <- function(model){
+SummaryMCMC <- function(model){
+  
+  summary(model)
+  
   # Convertit la chaîne en objet mcmc de coda
-  mcmc <- as.mcmc(model)
+  #mcmc <- as.mcmc(model)
   
   # Trace l'évolution des paramètres au fil des itérations
-  traceplot(mcmc)
+  #traceplot(mcmc)
   
   # Affiche les statistiques sommaires des paramètres estimés
-  summary(mcmc)
+  #summary(mcmc)
+  
+  # Create density plots for each parameter
+  #densplot(mcmc)
+  
+  # Create autocorrelation plots for each parameter
+  #acf(mcmc)
   
   # Trace l'autocorrélation de la chaîne MCMC
-  autocorr.plot(mcmc)
+  #autocorr.plot(mcmc)
   
   # Diagnostique la convergence de la chaîne en utilisant le critère de R après Gelman et Rubin
-  gelman.diag(mcmc)
+  #gelman.diag(mcmc)
+  
+  # Compute the effective sample size for each parameter
+  #effectiveSize(mcmc)
+}
+
+TestMCMCRstanarm <- function(){
+  # Load example data
+  data(mtcars)
+  
+  # Fit a Bayesian linear regression model with mpg as the target feature
+  fit_rstanarm <- stan_glm(mpg ~ ., data = mtcars, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10))
+  
+  MCMCTrace(fit_rstanarm)
+  
+  MCMCRhat(fit_rstanarm)
+}
+
+TestMCMCRstan <- function(){
+  # Load example data
+  data(mtcars)
+  
+  predictors <- mtcars %>% select(-mpg)
+  
+  stan_data <- list(
+    N = 32,
+    K = 10,
+    X = predictors,
+    y = mtcars$mpg
+  )
+  
+  fit_rstan <- stan(
+    file = "mtcars.stan",
+    data = stan_data
+  )
+  
+  MCMCTrace(fit_rstan)
+  
+  MCMCRhat(fit_rstan)
 }
 
 
