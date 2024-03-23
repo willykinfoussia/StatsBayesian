@@ -31,7 +31,7 @@ RawData = ImportData("Q14_survey_for_dataverse.csv")
 Data <- remove_columns(RawData, c("firstthought", "recent", "tpfeel", "biggest", "paystub", "depend", "glad", "upset", "benefit", "wastethink","eitcexp", "eitcthink"))
 Data <- CleanData(Data)
 
-Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1"))
+Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1", "weightvec"))
 ```
 
 ```{r}
