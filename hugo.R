@@ -3,3 +3,9 @@ remove_columns <- function(dataset, columns_to_remove) {
   
   return(new_dataset)
 }
+
+
+to_factor <- function(data, columns){
+  new_df = data
+  new_df[, columns] <- lapply(new_df[, columns], factor)
+}
