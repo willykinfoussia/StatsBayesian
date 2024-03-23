@@ -6,25 +6,87 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,message=FALSE,warning=FALSE)
+rm(list=ls())
+graphics.off()
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r source}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+source("willy.R")
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+RawData <- ImportData("Q14_survey_for_dataverse.csv")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Exploratory Data Analysis
+
+```{r}
+summary(RawData)
+```
+
+## Checking for missing values
+
+```{r}
+RawData %>% summarise_all(list(~ sum(is.na(.))))
+```
+```{r}
+missing_values <- sapply(RawData, function(x) sum(is.na(x)))
+
+# Create a data frame for missing values
+df_missing <- data.frame(Variables = names(missing_values), Missing_Values = as.numeric(missing_values))
+
+# Number of missing values
+sum(df_missing$Missing_Values)
+
+# Plot the histogram
+ggplot(df_missing, aes(x = Variables, y = missing_values)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "Variables", y = "Number of missing values", title = "Histogram of missing values")
+```
+
+## Removing missing values
+
+```{r}
+Data_wo_NA <- RemoveNA(RawData)
+```
+
+## Distribution of numeric variables
+
+```{r}
+NumericData <- RemoveStringFeature(Data_wo_NA)
+
+for (var in colnames(NumericData)) {
+  print(
+    ggplot(NumericData, aes_string(x = var)) + 
+      geom_histogram(binwidth = NULL, fill = "skyblue", color = "black") + 
+      labs(title = paste("Distribution of", var)) +
+      theme_minimal()
+  )
+}
+```
+
+## Correlation matrix
+
+```{r}
+correlation_matrix <- cor(NumericData)
+corrplot::corrplot(correlation_matrix, method = "circle", type = "upper", tl.cex = 0.7)
+```
+
+## Boxplot of numeric variables
+
+```{r}
+# Reshape data for boxplot
+NumericData_long <- gather(NumericData, key = "variable", value = "value")
+
+# Create boxplot
+ggplot(NumericData_long, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Boxplot of Numeric Variables") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
