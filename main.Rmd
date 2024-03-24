@@ -14,6 +14,7 @@ library(coda)
 library(mvtnorm)
 library(ggplot2)
 library(bayesplot)
+library(loo)
 source("willy.R")
 source("hugo.R")
 ```
@@ -28,36 +29,37 @@ RawData = ImportData("Q14_survey_for_dataverse.csv")
 
 
 ```{r}
-Data <- remove_columns(RawData, c("firstthought", "recent", "tpfeel", "biggest", "paystub", "depend", "glad", "upset", "benefit", "wastethink","eitcexp", "eitcthink"))
-Data <- CleanData(Data)
+#Data <- remove_columns(RawData, c("firstthought", "recent", "tpfeel", "biggest", "paystub", "depend", "glad", "upset", "benefit", "wastethink","eitcexp", "eitcthink"))
 
-Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1", "weightvec"))
+#Data <- RemoveNA(Data)
+
+#Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1", "weightvec"))
+
+Data <- CleanData(RawData)
+
+GetDatasetInformation(Data)
+```
+
+
+## MODELS
+
+```{r}
+rstanarm_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10))
 ```
 
 ```{r}
-model <- BayesianLinearRegression(Data, TARGET_FEATURE, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10))
+rstan_model <- BayesianLinearRegressionRstan(Data, TARGET_FEATURE)
 ```
 
-```{r}
-mse <- BayesianMSE(model, Data, TARGET_FEATURE)
-SummaryMCMC(model)
-```
+## EVALUATION
+
 
 ```{r}
-PlotMCMC(model, Data, TRUE)
-```
-
-```{r}
-MCMCTrace(model)
-
-MCMCRhat(model)
+EvaluateBayesianRstanarmModel(rstanarm_model, Data, TARGET_FEATURE)
 ```
 
 
 ```{r}
-TestMCMCRstanarm()
+EvaluateBayesianRstanModel(rstan_model, Data, TARGET_FEATURE)
 ```
 
-```{r}
-TestMCMCRstan()
-```

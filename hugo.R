@@ -9,7 +9,7 @@ to_factor <- function(data, columns_to_convert = c(), columns_to_exclude = c()){
   new_df = data
   columns <- setdiff(colnames(data), columns_to_exclude)
   all_col = c(columns_to_convert, columns)
-  print(all_col)
+  #print(all_col)
   new_df[, all_col] <- lapply(new_df[, all_col], factor)
   
   return(new_df)
