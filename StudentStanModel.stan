@@ -22,19 +22,16 @@ data {
 parameters {
   vector[K] beta; // regression coefficients
   real<lower=0> sigma; // error standard deviation
+  real<lower=0> nu;
 }
 
 // The model to be estimated. We model the output
 // 'y' to be normally distributed with mean 'mu'
 // and standard deviation 'sigma'.
 model {
-  y ~ normal(X * beta, sigma); // likelihood
+  y ~ student_t(nu, X * beta, sigma);
+  nu ~ normal(0, 10);
   beta ~ normal(0, 10); // prior for coefficients
   sigma ~ cauchy(0, 2.5); // prior for error standard deviation
 }
-
-//generated quantities {
-//  vector[N] y_hat; // fitted values
-//  y_hat = X * beta;
-//}
 

@@ -40,14 +40,10 @@ RemoveStringFeature <- function(data){
 CleanData <- function(data){
   data <- RemoveStringFeature(data)
   data <- RemoveNA(data)
-  GetDatasetInformation(data)
   return(data)
 }
 
-BayesianLinearRegressionRstan <- function(data, targetFeature) {
-  # Define the formula
-  # formule <- as.formula(paste(paste(targetFeature,"~"), paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = " + ")))
-  
+BayesianLinearRegressionRstan <- function(data, targetFeature, stanFile = "StanModel.stan") {
   # Define the Stan data
   stan_data <- list(
     N = nrow(data),
@@ -58,11 +54,11 @@ BayesianLinearRegressionRstan <- function(data, targetFeature) {
   
   # Fit the Stan model
   fit <- stan(
-    file = "StanModel.stan",
+    file = stanFile,
     data = stan_data,
     chains = 4,
-    iter = 2000,
-    warmup = 1000,
+    iter = 200,
+    warmup = 100,
     cores = 4,
     control = list(max_treedepth = 15)
   )
@@ -74,10 +70,41 @@ BayesianLinearRegressionRstan <- function(data, targetFeature) {
   return(fit)
 }
 
-BayesianLinearRegressionRstanarm <- function(data, targetFeature, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10)){
+BayesianLinearRegressionRstanarm <- function(data, targetFeature, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10), family = gaussian()){
   formule <- as.formula(paste(paste(targetFeature,"~"), paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = " + ")))
-  model <- stan_glm(formule, data = data, prior = prior, prior_intercept = prior_intercept)
+  model <- stan_glm(formule, data = data, prior = prior, prior_intercept = prior_intercept, family = family)
   print(model, digits = 3)
+  return(model)
+}
+
+BayesianNonLinearRegressionRstanarm <- function(data, targetFeature, prior  = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10), iter = 2000, chains = 4){
+  # Define the non-linear model formula
+  #formula <- paste(paste(targetFeature,"~"), paste("SSasymp(",paste(paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = ","))),")")
+  
+  #formula <- paste(targetFeature,"~")
+  #begin = TRUE
+  #for (feature in colnames(data)[!colnames(data) %in% c(targetFeature)]){
+  #  if(begin == TRUE){
+  #    formula <- paste(formula, " SSasymp(", feature, ", Asym_",feature,", lrc_", feature,", c0_",feature,")", sep = "")
+  #    begin = FALSE
+  #  }else{
+  #    formula <- paste(formula, "+", feature)
+      #formula <- paste(formula, " + SSasymp(", feature, ", Asym_",feature,", lrc_", feature,", c0_",feature,")", sep = "")
+  #  }
+  #}
+  #formula <- paste(paste(targetFeature,"~"), paste("SSasymp(",paste(paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = ","))),")")
+  
+  #formule <- as.formula(formula)
+  formula <- paste(paste(targetFeature,"~"), paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = " + "))
+  formula <- paste(formula, "+ (1 | statename)")
+  formule <- as.formula(formula)
+  formula <- percenttp ~ gender + educ + partyid + firstthought + taxpayer + recent + tpfeel + biggest + wagesal + paystub + child + depend + glad + upset + benefit + wastecents + wastethink + eitcself + eitcexp + eitcother + eitcthink + labforce + polideo + polinffreq + regvote + feelfedgov_1 + voted + discusspol + poleffic + polvol + polknow1 + polknow2 + polkno3 + marital + ownhome + stateresid + yearbirth + raceeth + hhinc + (1 | statename)
+  print(formule)
+  # Fit the non-linear Bayesian model
+  model <- stan_nlmer(formule, data = data,prior = prior,prior_intercept = prior_intercept,iter = iter, chains = chains)
+  # Print the summary of the model
+  print(model, digits = 3)
+  # Return the model object
   return(model)
 }
 
