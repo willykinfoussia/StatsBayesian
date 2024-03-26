@@ -15,6 +15,9 @@ library(mvtnorm)
 library(ggplot2)
 library(bayesplot)
 library(loo)
+library(tidytext)
+library(tidyverse)
+library(textdata)
 source("willy.R")
 source("hugo.R")
 ```
@@ -35,9 +38,12 @@ RawData = ImportData("Q14_survey_for_dataverse.csv")
 
 #Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1", "weightvec"))
 
-Data <- CleanData(RawData)
+#Data <- CleanData(RawData)
 
 GetDatasetInformation(Data)
+```
+```{r}
+sentiment_columns(RawData, c("firstthought", "tpfeel"))
 ```
 
 
