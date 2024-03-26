@@ -62,6 +62,9 @@ rstanarm_lassoprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATU
 
 Non Linear
 
+```{r}
+rstanarm_normalprior_nl_model <- BayesianNonLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0))
+```
 
 
 
@@ -112,6 +115,10 @@ BayesianMSERstanarm(rstanarm_lassoprior_model, Data, TARGET_FEATURE)
 ### Rstan
 
 ```{r}
-EvaluateBayesianRstanModel(rstan_model, Data, TARGET_FEATURE)
+EvaluateBayesianRstanModel(normal_rstan_model, Data, TARGET_FEATURE)
+```
+
+```{r}
+EvaluateBayesianRstanModel(student_rstan_model, Data, TARGET_FEATURE)
 ```
 
