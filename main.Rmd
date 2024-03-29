@@ -14,6 +14,10 @@ library(coda)
 library(mvtnorm)
 library(ggplot2)
 library(bayesplot)
+library(loo)
+library(tidytext)
+library(tidyverse)
+library(textdata)
 source("willy.R")
 source("hugo.R")
 ```
@@ -28,36 +32,99 @@ RawData = ImportData("Q14_survey_for_dataverse.csv")
 
 
 ```{r}
-Data <- remove_columns(RawData, c("firstthought", "recent", "tpfeel", "biggest", "paystub", "depend", "glad", "upset", "benefit", "wastethink","eitcexp", "eitcthink"))
-Data <- CleanData(Data)
+#Data <- remove_columns(RawData, c("firstthought", "recent", "tpfeel", "biggest", "paystub", "depend", "glad", "upset", "benefit", "wastethink","eitcexp", "eitcthink"))
 
-Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1", "weightvec"))
+#Data <- RemoveNA(Data)
+
+#Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1", "weightvec"))
+
+#Data <- CleanData(RawData)
+
+GetDatasetInformation(Data)
+```
+```{r}
+sentiment_columns(RawData, c("firstthought", "tpfeel"))
+```
+
+
+Linear 
+
+```{r}
+rstanarm_normalprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0))
+
+rstanarm_productnormalprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = product_normal(df = 2, location = 0, scale = 1), prior_intercept = normal(location = 0))
+
+rstanarm_studentprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = student_t(df = 1, location = 0), prior_intercept = normal(location = 0))
+
+rstanarm_cauchyprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = cauchy(location = 0), prior_intercept = normal(location = 0))
+
+rstanarm_laplaceprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = laplace(location = 0), prior_intercept = normal(location = 0))
+
+rstanarm_hsprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = hs(df = 1, global_df = 1, global_scale = 0.01, slab_df = 4, slab_scale = 2.5), prior_intercept = normal(location = 0))
+
+rstanarm_lassoprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = lasso(df = 1, location = 0), prior_intercept = normal(location = 0))
+
+```
+
+Non Linear
+
+```{r}
+rstanarm_normalprior_nl_model <- BayesianNonLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0))
+```
+
+
+
+### Rstan model
+
+Linear
+
+```{r}
+normal_rstan_model <- BayesianLinearRegressionRstan(Data, TARGET_FEATURE, "NormalStanModel.stan")
+
+student_rstan_model <- BayesianLinearRegressionRstan(Data, TARGET_FEATURE, "StudentStanModel.stan")
+```
+
+## EVALUATION
+
+### Rstanarm
+
+Linear
+
+```{r}
+EvaluateBayesianRstanarmModel(rstanarm_normalprior_nl_model, Data, TARGET_FEATURE)
 ```
 
 ```{r}
-model <- BayesianLinearRegression(Data, TARGET_FEATURE, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10))
+BayesianMSERstanarm(rstanarm_productnormalprior_nl_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_studentprior_nl_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_cauchyprior_nl_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_laplaceprior_nl_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_hsprior_nl_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_lassoprior_nl_model, Data, TARGET_FEATURE)
+```
+
+Non Linear
+
+```{r}
+EvaluateBayesianRstanarmModel(rstanarm_normalprior_model, Data, TARGET_FEATURE)
 ```
 
 ```{r}
-mse <- BayesianMSE(model, Data, TARGET_FEATURE)
-SummaryMCMC(model)
+BayesianMSERstanarm(rstanarm_productnormalprior_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_studentprior_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_cauchyprior_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_laplaceprior_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_hsprior_model, Data, TARGET_FEATURE)
+BayesianMSERstanarm(rstanarm_lassoprior_model, Data, TARGET_FEATURE)
+```
+
+### Rstan
+
+```{r}
+EvaluateBayesianRstanModel(normal_rstan_model, Data, TARGET_FEATURE)
 ```
 
 ```{r}
-PlotMCMC(model, Data, TRUE)
+EvaluateBayesianRstanModel(student_rstan_model, Data, TARGET_FEATURE)
 ```
 
-```{r}
-MCMCTrace(model)
-
-MCMCRhat(model)
-```
-
-
-```{r}
-TestMCMCRstanarm()
-```
-
-```{r}
-TestMCMCRstan()
-```

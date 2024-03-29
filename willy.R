@@ -38,22 +38,65 @@ RemoveStringFeature <- function(data){
 }
 
 CleanData <- function(data){
-  # data <- RemoveStringFeature(data)
+  data <- RemoveStringFeature(data)
   data <- RemoveNA(data)
-  GetDatasetInformation(data)
   return(data)
 }
 
-BayesianLinearRegression <- function(data, targetFeature, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10)){
+BayesianLinearRegressionRstan <- function(data, targetFeature, stanFile = "StanModel.stan") {
+  # Define the Stan data
+  stan_data <- list(
+    N = nrow(data),
+    K = ncol(data) - 1,
+    X = as.matrix(data[,-which(colnames(data) == targetFeature)]),
+    y = data[[targetFeature]]
+  )
+  
+  # Fit the Stan model
+  fit <- stan(
+    file = stanFile,
+    data = stan_data,
+    chains = 4,
+    iter = 200,
+    warmup = 100,
+    cores = 4,
+    control = list(max_treedepth = 15)
+  )
+  
+  # Print the model summary
+  print(fit, digits_summary = 3)
+  
+  # Return the model object
+  return(fit)
+}
+
+BayesianLinearRegressionRstanarm <- function(data, targetFeature, prior = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10), family = gaussian()){
   formule <- as.formula(paste(paste(targetFeature,"~"), paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = " + ")))
-  model <- stan_glm(formule, data = data, prior = prior, prior_intercept = prior_intercept)
+  model <- stan_glm(formule, data = data, prior = prior, prior_intercept = prior_intercept, family = family)
   print(model, digits = 3)
   return(model)
 }
 
-BayesianMSE <- function(model, data, targetFeature) {
-  # Génère des prédictions à partir du modèle bayésien
-  predictions <- posterior_predict(model, newdata = data)
+BayesianNonLinearRegressionRstanarm <- function(data, targetFeature, prior  = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10), iter = 2000, chains = 4){
+  formula <- paste(paste(targetFeature,"~"), paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = " + "))
+  formula <- paste(formula, "+ (educ | gender)")
+  formule <- as.formula(formula)
+  #formula <- percenttp ~ gender + educ + partyid + firstthought + taxpayer + recent + tpfeel + biggest + wagesal + paystub + child + depend + glad + upset + benefit + wastecents + wastethink + eitcself + eitcexp + eitcother + eitcthink + labforce + polideo + polinffreq + regvote + feelfedgov_1 + voted + discusspol + poleffic + polvol + polknow1 + polknow2 + polkno3 + marital + ownhome + stateresid + yearbirth + raceeth + hhinc + (1 | statename)
+  print(formule)
+  # Fit the non-linear Bayesian model
+  model <- stan_lmer(formule, data = data,prior = prior,prior_intercept = prior_intercept,iter = iter, chains = chains)
+  # Print the summary of the model
+  print(model, digits = 3)
+  # Return the model object
+  return(model)
+}
+
+BayesianMSERstanarm <- function(model, data, targetFeature, predictions = NULL) {
+  
+  if (is.null(predictions)){
+    # Génère des prédictions à partir du modèle bayésien
+    predictions <- posterior_predict(model, newdata = data)
+  }
   
   # Calcule l'erreur quadratique moyenne entre les prédictions et les valeurs réelles
   mse <- mean((predictions - data[[targetFeature]])^2)
@@ -62,6 +105,64 @@ BayesianMSE <- function(model, data, targetFeature) {
   print(mse)
   
   return(mse)
+}
+
+EvaluateBayesianRstanModel <- function(model, data, targetFeature){
+  X_data = as.matrix(data[,-which(colnames(data) == targetFeature)])
+  y_data = as.matrix(data[[targetFeature]])
+  
+  # Extract the posterior samples of the parameters
+  params <- extract(model)
+  
+  # Generate posterior predictive samples
+  y_rep <- matrix(nrow = nrow(data), ncol = nrow(params$beta))
+  for (i in 1:nrow(params$beta)) {
+    y_rep[,i] <- rnorm(n = nrow(data), mean = X_data %*% params$beta[i,], sd = params$sigma[i])
+  }
+  y_mean_rep <- apply(y_rep, 1, mean)
+  beta_mean <- as.matrix(apply(params$beta, 2, mean))
+  
+  # Compute the MSE for each set of posterior predictive samples
+  mse <- apply(y_rep, 2, function(y_hat) mean((y_data - y_hat)^2))
+  
+  # Compute the posterior mean and credible intervals of the MSE
+  mse_mean <- mean(mse)
+  mse_ci <- quantile(mse, c(0.025, 0.975))
+  
+  # Print the results
+  cat("MSE mean:", round(mse_mean, 3), "\n")
+  cat("MSE 95% CI: [", round(mse_ci, 3), "] \n")
+  
+  # Plot the observed and predicted values
+  plot(y_data, y_mean_rep, xlab = paste("Observed",targetFeature), ylab = paste("Predicted",targetFeature), col = "gray")
+  abline(0, 1, lwd = 2)
+  
+  # Plot the residuals
+  plot(y_data, y_data - y_mean_rep, xlab = paste("Observed",targetFeature), ylab = "Residuals")
+  abline(h = 0, lwd = 2)
+}
+
+EvaluateBayesianRstanarmModel <- function(model, data, targetFeature){
+  y_data = as.matrix(data[[targetFeature]])
+  
+  # Generate posterior predictive samples
+  y_rep <- posterior_predict(model, newdata = data)
+  y_mean_rep <- as.matrix(apply(y_rep, 2, mean))
+  
+  BayesianMSERstanarm(model, data, targetFeature, y_rep)
+  
+  
+  # Plot the observed and predicted values
+  plot(y_data, y_mean_rep, xlab = paste("Observed",targetFeature), ylab = paste("Predicted",targetFeature), col = "gray")
+  abline(0, 1, lwd = 2)
+  
+  # Plot the residuals
+  plot(y_data, residuals(model), xlab = paste("Predicted",targetFeature), ylab = "Residuals")
+  abline(h = 0, lwd = 2)
+  
+  # Compute the LOO-CV estimates
+  loo_fit <- loo(model)
+  print(loo_fit)
 }
 
 MCMCTrace <- function(model){

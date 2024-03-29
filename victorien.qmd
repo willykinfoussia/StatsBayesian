@@ -1,0 +1,99 @@
+---
+title: "victorien"
+format: html
+editor: visual
+---
+
+## importing data and library
+
+```{r}
+library(rstan)
+library(tidyverse)
+
+data<-read_csv("Q14 survey_for dataverse.csv")
+```
+
+```{r}
+textdata<-subset(data, select=c("firstthought", "recent", "tpfeel", "biggest", "paystub", "depend", "glad", "upset", "benefit", "wastethink","eitcexp", "eitcthink"))
+
+data <- subset(data, select = -c(firstthought, recent, tpfeel, biggest, paystub, depend, glad, upset, benefit, wastethink, eitcexp, eitcthink))
+
+
+columns_to_exclude <- c("percenttp", "wastecents", "feelfedgov_1", "weightvec")
+
+# Identify columns to convert
+columns_to_convert <- setdiff(names(data), columns_to_exclude)
+
+# Convert selected columns to factor
+data[columns_to_convert] <- lapply(data[columns_to_convert], as.factor)
+
+#na_educ<-which(is.na(data$educ))
+#data$educ[na_educ]<-as.factor(3)
+
+```
+
+```{r}
+
+percentage_of_taxpayers <- round(mean(data$taxpayer == 1) * 100)
+print(percentage_of_taxpayers)
+
+#create a column that will show how far a person is from the true value of taxpayers 
+
+data$dist_reality_tp<-data$percenttp- percentage_of_taxpayers
+
+
+ggplot(data = data, aes(x = dist_reality_tp)) +
+    geom_histogram(bins = 12, fill = "skyblue", color = "black") +
+    labs(title = "Histogram", x = "Values", y = "Frequency") +
+    theme_minimal()
+
+#we look at the first prior, we can not put to much bins as is would then be too precise and we would not see a good looking distribuiton 
+```
+
+## First model with out bayesian 
+
+```{r}
+library(lme4)
+
+model1_lme<- lmer(dist_reality_tp ~ gender + taxpayer + educ + (gender| educ), data, REML = FALSE )
+
+summary(model1_lme)
+
+qqnorm(residuals(model1_lme))
+qqline(residuals(model1_lme))
+```
+
+## using a bayesian approach
+
+```{r}
+library(glmer2stan)
+
+
+# basic MCMC parameter, should probably be a bit higher but we dont have all day!
+nwarm = 100 # burn-in period, these samples are not included in estimation
+niter = 500 # number of steps per chain, more is better (but takes longer)
+chains = 4 # number of chains, usually at least 2
+
+data_stan<-data
+
+data_stan$educ<-as.numeric(as.character(data$educ))
+
+
+model2_glmerstan<- lmer2stan(dist_reality_tp ~ gender + taxpayer + educ + (gender| educ), data_stan, calcWAIC=T, warmup=nwarm,iter = niter, chains=chains)
+```
+
+```{r}
+library(rstanarm)
+
+# Spécification du modèle
+model3 <- stan_lmer(dist_reality_tp ~ gender + taxpayer + educ + (educ|gender), data = data_stan, iter = niter, warmup = nwarm, chains = chains)
+
+# Afficher un résumé du modèle
+summary(model3)
+
+```
+
+```{r}
+qqnorm(residuals(model3))
+qqline(residuals(model3))
+```
