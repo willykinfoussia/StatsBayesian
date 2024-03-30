@@ -71,6 +71,9 @@ Data[columns_to_convert] <- lapply(Data[columns_to_convert], as.factor)
 GetDatasetInformation(Data)
 ```
 
+```{r}
+#clean_data<-write_csv(Data, "clean_data.csv")
+```
 
 
 ```{r}
