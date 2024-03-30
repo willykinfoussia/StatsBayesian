@@ -60,12 +60,17 @@ Data <- ReplaceNaWithValue(Data, c("hhinc"), 20)
 
 Data <- CleanData(Data)
 
+fake_check = generate_fake_data(Data)
+fake_data = fake_check$fake_data
+coef_fake = fake_check$coef
+
 columns_to_exclude <- c("percenttp", "wastecents", "feelfedgov_1", "weightvec")
 columns_to_convert <- setdiff(names(Data), columns_to_exclude)
 Data[columns_to_convert] <- lapply(Data[columns_to_convert], as.factor)
 
 GetDatasetInformation(Data)
 ```
+
 
 
 ```{r}
