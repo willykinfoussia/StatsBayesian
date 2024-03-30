@@ -42,6 +42,7 @@ RawData = ImportData("Q14_survey_for_dataverse.csv")
 
 GetDatasetInformation(Data)
 ```
+
 ```{r}
 sentiment_columns(RawData, c("firstthought", "tpfeel"))
 ```
