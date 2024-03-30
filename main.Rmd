@@ -72,7 +72,7 @@ GetDatasetInformation(Data)
 ```
 
 ```{r}
-clean_data<-write_csv(Data, "clean_data.csv")
+#clean_data<-write_csv(Data, "clean_data.csv")
 ```
 
 
