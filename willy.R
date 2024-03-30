@@ -27,6 +27,36 @@ RemoveNA <- function(data){
   return(donnees_nettoyees)
 }
 
+ReplaceNaWithValue <- function(data_frame, columns, value) {
+  # If columns is a single column name or index, convert it to a vector
+  if (!is.vector(columns)) {
+    columns <- as.character(columns)
+  }
+  
+  # Loop through each specified column
+  for (col in columns) {
+    # Replace NA with the specified value
+    data_frame[is.na(data_frame[[col]]) , col] <- value
+  }
+  
+  return(data_frame)
+}
+
+
+ReplaceNaWithMean <- function(data_frame, columns) {
+  # Calculate the mean of each specified column
+  col_means <- colMeans(data_frame[columns], na.rm = TRUE)
+  print(col_means)
+  
+  # Loop through each specified column
+  for (col in columns) {
+    # Replace NA with the mean of the respective column
+    data_frame[is.na(data_frame[[col]]) , col] <- col_means[col]
+  }
+  
+  return(data_frame)
+}
+
 RemoveStringFeature <- function(data){
   # Teste le type de chaque colonne
   is_string <- sapply(data, function(x) is.character(x))
@@ -79,9 +109,7 @@ BayesianLinearRegressionRstanarm <- function(data, targetFeature, prior = normal
 
 BayesianNonLinearRegressionRstanarm <- function(data, targetFeature, prior  = normal(location = 0, scale = 10), prior_intercept = normal(location = 0, scale = 10), iter = 2000, chains = 4){
   formula <- paste(paste(targetFeature,"~"), paste(colnames(data)[!colnames(data) %in% c(targetFeature)], collapse = " + "))
-  formula <- paste(formula, "+ (educ | gender)")
-  formule <- as.formula(formula)
-  #formula <- percenttp ~ gender + educ + partyid + firstthought + taxpayer + recent + tpfeel + biggest + wagesal + paystub + child + depend + glad + upset + benefit + wastecents + wastethink + eitcself + eitcexp + eitcother + eitcthink + labforce + polideo + polinffreq + regvote + feelfedgov_1 + voted + discusspol + poleffic + polvol + polknow1 + polknow2 + polkno3 + marital + ownhome + stateresid + yearbirth + raceeth + hhinc + (1 | statename)
+  formule <- as.formula(paste(formula, "+ (educ | gender)"))
   print(formule)
   # Fit the non-linear Bayesian model
   model <- stan_lmer(formule, data = data,prior = prior,prior_intercept = prior_intercept,iter = iter, chains = chains)
@@ -95,7 +123,7 @@ BayesianMSERstanarm <- function(model, data, targetFeature, predictions = NULL) 
   
   if (is.null(predictions)){
     # Génère des prédictions à partir du modèle bayésien
-    predictions <- posterior_predict(model, newdata = data)
+    predictions <- posterior_predict(model)
   }
   
   # Calcule l'erreur quadratique moyenne entre les prédictions et les valeurs réelles
@@ -146,11 +174,10 @@ EvaluateBayesianRstanarmModel <- function(model, data, targetFeature){
   y_data = as.matrix(data[[targetFeature]])
   
   # Generate posterior predictive samples
-  y_rep <- posterior_predict(model, newdata = data)
+  y_rep <- posterior_predict(model)
   y_mean_rep <- as.matrix(apply(y_rep, 2, mean))
   
   BayesianMSERstanarm(model, data, targetFeature, y_rep)
-  
   
   # Plot the observed and predicted values
   plot(y_data, y_mean_rep, xlab = paste("Observed",targetFeature), ylab = paste("Predicted",targetFeature), col = "gray")
@@ -159,6 +186,9 @@ EvaluateBayesianRstanarmModel <- function(model, data, targetFeature){
   # Plot the residuals
   plot(y_data, residuals(model), xlab = paste("Predicted",targetFeature), ylab = "Residuals")
   abline(h = 0, lwd = 2)
+  
+  qqnorm(residuals(model))
+  qqline(residuals(model))
   
   # Compute the LOO-CV estimates
   loo_fit <- loo(model)
