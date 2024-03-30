@@ -20,6 +20,7 @@ library(tidyverse)
 library(textdata)
 source("willy.R")
 source("hugo.R")
+set.seed(42)
 ```
 
 ## Importation
@@ -36,15 +37,41 @@ RawData = ImportData("Q14_survey_for_dataverse.csv")
 
 #Data <- RemoveNA(Data)
 
-#Data <- to_factor(Data, columns_to_exclude = c("percenttp", "wastecents", "feelfedgov_1", "weightvec"))
+Data <- ReplaceNaWithValue(RawData, c("partyid"), 9)
+Data <- ReplaceNaWithValue(Data, c("educ"), 7)
+Data <- ReplaceNaWithValue(Data, c("wagesal"), 0)
+Data <- ReplaceNaWithValue(Data, c("paystub"), 0)
+Data <- ReplaceNaWithValue(Data, c("eitcself"), 0)
+Data <- ReplaceNaWithValue(Data, c("eitcexp"), 0)
+Data <- ReplaceNaWithValue(Data, c("eitcother"), 0)
+Data <- ReplaceNaWithValue(Data, c("labforce"), 10)
+Data <- ReplaceNaWithValue(Data, c("polideo"), 8)
+Data <- ReplaceNaWithValue(Data, c("polinffreq"), 5)
+Data <- ReplaceNaWithValue(Data, c("regvote"), 3)
+Data <- ReplaceNaWithValue(Data, c("voted"), 3)
+Data <- ReplaceNaWithValue(Data, c("discusspol"), 5)
+Data <- ReplaceNaWithValue(Data, c("poleffic"), 6)
+Data <- ReplaceNaWithValue(Data, c("polvol"), 5)
+Data <- ReplaceNaWithValue(Data, c("raceeth"), 7)
+Data <- ReplaceNaWithValue(Data, c("hhinc"), 20)
 
-#Data <- CleanData(RawData)
+#Data <- ReplaceNaWithMean(Data, c("child", "wastecents"))
+#Data <- sentiment_columns(Data, c("firstthought", "tpfeel", "wastethink", "recent"))
+
+Data <- CleanData(Data)
+
+columns_to_exclude <- c("percenttp", "wastecents", "feelfedgov_1", "weightvec")
+columns_to_convert <- setdiff(names(Data), columns_to_exclude)
+Data[columns_to_convert] <- lapply(Data[columns_to_convert], as.factor)
 
 GetDatasetInformation(Data)
 ```
+
+
 ```{r}
-sentiment_columns(RawData, c("firstthought", "tpfeel"))
+rstanarm_normalprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0))
 ```
+
 
 
 Linear 
@@ -69,26 +96,14 @@ rstanarm_lassoprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATU
 Non Linear
 
 ```{r}
-rstanarm_normalprior_nl_model <- BayesianNonLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0))
-```
-
-
-
-### Rstan model
-
-Linear
-
-```{r}
-normal_rstan_model <- BayesianLinearRegressionRstan(Data, TARGET_FEATURE, "NormalStanModel.stan")
-
-student_rstan_model <- BayesianLinearRegressionRstan(Data, TARGET_FEATURE, "StudentStanModel.stan")
+rstanarm_normalprior_nl_model <- BayesianNonLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0), iter = 200, chain = 4)
 ```
 
 ## EVALUATION
 
 ### Rstanarm
 
-Linear
+Non Linear
 
 ```{r}
 EvaluateBayesianRstanarmModel(rstanarm_normalprior_nl_model, Data, TARGET_FEATURE)
@@ -103,7 +118,7 @@ BayesianMSERstanarm(rstanarm_hsprior_nl_model, Data, TARGET_FEATURE)
 BayesianMSERstanarm(rstanarm_lassoprior_nl_model, Data, TARGET_FEATURE)
 ```
 
-Non Linear
+Linear
 
 ```{r}
 EvaluateBayesianRstanarmModel(rstanarm_normalprior_model, Data, TARGET_FEATURE)

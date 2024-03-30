@@ -50,7 +50,7 @@ ggplot(data = data, aes(x = dist_reality_tp)) +
 #we look at the first prior, we can not put to much bins as is would then be too precise and we would not see a good looking distribuiton 
 ```
 
-## First model with out bayesian 
+## First model with out bayesian
 
 ```{r}
 library(lme4)
