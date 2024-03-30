@@ -64,7 +64,7 @@ generate_fake_data <- function(data){
   fake_data = data.frame(gender = as.factor(gender_fake))
   
   for (i in columns_to_convert){
-    p = tabulate(as.integer(sapply(Data[i], function(x) x + ifelse(min(Data[i]) == 0, 1, 0))))/n
+    p = tabulate(as.integer(sapply(Data[i], function(x) x + ifelse(min(Data[i]) == 0, 1, ifelse(min(Data[i]) == -1, 2, 0) ))))/n
     d_fake = sample(min(Data[i]):max(Data[i]), size=n, replace=TRUE, prob=p)
     fake_data[i] = d_fake
   }

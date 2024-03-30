@@ -56,7 +56,7 @@ Data <- ReplaceNaWithValue(Data, c("raceeth"), 7)
 Data <- ReplaceNaWithValue(Data, c("hhinc"), 20)
 
 #Data <- ReplaceNaWithMean(Data, c("child", "wastecents"))
-#Data <- sentiment_columns(Data, c("firstthought", "tpfeel", "wastethink", "recent"))
+Data <- sentiment_columns(Data, c("firstthought", "tpfeel", "wastethink", "recent"))
 
 Data <- CleanData(Data)
 
@@ -75,6 +75,12 @@ GetDatasetInformation(Data)
 
 ```{r}
 rstanarm_normalprior_model <- BayesianLinearRegressionRstanarm(Data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0))
+
+rstanarm_normalprior_model <- BayesianLinearRegressionRstanarm(fake_data, TARGET_FEATURE, prior = normal(location = 0), prior_intercept = normal(location = 0))
+```
+
+```{r}
+rstanarm_productnormalprior_model <- BayesianLinearRegressionRstanarm(fake_data, TARGET_FEATURE, prior = product_normal(df = 2, location = 0, scale = 1), prior_intercept = normal(location = 0))
 ```
 
 
